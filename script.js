@@ -1,3 +1,6 @@
+"use strict";
+import * as THREE from './three/build/three.module.js';
+
 var mflag = false;
 document.getElementById("container").addEventListener("mouseover", mouseOver);
 document.getElementById("container").addEventListener("mouseout", mouseOut);
@@ -9,266 +12,231 @@ function mouseOut() {
     mflag = false;
 }
 
+class Marks360 {
+    constructor(json) {
+        this.scene = new THREE.Scene();
+        this.renderer = new THREE.WebGLRenderer();
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
+        this.json = json;
 
-"use strict";
-import * as THREE from './three/build/three.module.js';
+        this.isUserInteracting = false,
+                this.onMouseDownMouseX = 0, this.onMouseDownMouseY = 0,
+                this.lon = 0, this.onMouseDownLon = 0,
+                this.lat = 0, this.onMouseDownLat = 0,
+                this.phi = 0, this.theta = 0;
 
-var camera, scene, renderer;
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.zoom = false;
+        this.selected;
+        this.init();
+        this.lisseners();
+    }
 
-var isUserInteracting = false,
-        onMouseDownMouseX = 0, onMouseDownMouseY = 0,
-        lon = 0, onMouseDownLon = 0,
-        lat = 0, onMouseDownLat = 0,
-        phi = 0, theta = 0;
+    zoom_on() {
+        this.zoom = true;
+    }
 
-init();
-animate();
-
-var raycaster = new THREE.Raycaster();
-var mouse = new THREE.Vector2();
-
-function onMouseMove(event) {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-}
-
-var selected;
-
-function inter() {
-    raycaster.setFromCamera(mouse, camera);
-    let intersects = raycaster.intersectObjects(scene.children, true);
-    if (intersects.length > 0) {         
-        if (intersects[0].object.name.indexOf('mark') !== -1) {
-            $('canvas').css('cursor', 'pointer');
-            selected = intersects[0].object;
-            intersects[0].object.scale.set(1.3, 1.3, 1.3);
-            renderer.render(scene, camera);
-        } else if (selected !== undefined) {
-            $('canvas').css('cursor', 'default');
-            selected.scale.set(1, 1, 1);
+    inter() {
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        let intersects = this.raycaster.intersectObjects(this.scene.children, true);
+        if (intersects.length > 0) {
+            if (intersects[0].object.name.indexOf('mark') !== -1) {
+                $('canvas').css('cursor', 'pointer');
+                this.selected = intersects[0].object;
+                intersects[0].object.scale.set(1.3, 1.3, 1.3);
+                this.renderer.render(this.scene, this.camera);
+            } else if (this.selected !== undefined) {
+                $('canvas').css('cursor', 'default');
+                this.selected.scale.set(1, 1, 1);
+            }
         }
     }
-}
 
-function find_id(name){
-    for(let i = 0; i < Object.keys(json).length; i++){
-        if(json[i]['name'] === name){
-            return json[i];
+    find_id(name) {
+        for (let i = 0; i < Object.keys(this.json).length; i++) {
+            if (this.json[i]['name'] === name) {
+                return this.json[i];
+            }
+        }
+        return false;
+    }
+
+    inter_click() {
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        let intersects = this.raycaster.intersectObjects(this.scene.children, true);
+        if (intersects.length > 0) {
+            if (intersects[0].object.name.indexOf('mark') !== -1) {
+                $('#modal').css('display', 'block');
+                let el = this.find_id(intersects[0].object.name);
+                $('#wimg').attr('src', el['html']['img']);
+                $('#mp').html(el['html']['text']);
+                $('#modal').css('opacity', '1');
+            }
         }
     }
-    return false;
-}
 
-function inter_click() {
-    raycaster.setFromCamera(mouse, camera);
-    let intersects = raycaster.intersectObjects(scene.children, true);
-    if (intersects.length > 0) {         
-        if (intersects[0].object.name.indexOf('mark') !== -1) {
-            $('#modal').css('display', 'block');
-            
-            let el = find_id(intersects[0].object.name);
-            $('#wimg').attr('src', el['html']['img']);
-            $('#mp').html(el['html']['text'] );
-            $('#modal').css('opacity', '1');
+    add_mark() {
+        let material = new THREE.MeshBasicMaterial({color: 0xffffff});
+        for (let i = 0; i < Object.keys(this.json).length; i++) {
+            let sgeo = new THREE.SphereGeometry(this.json[i]['sphere']['size'][0], this.json[i]['sphere']['size'][1], this.json[i]['sphere']['size'][2]);
+            let sphere = new THREE.Mesh(sgeo, material);
+            sphere.position.set(this.json[i]['sphere']['position'][0], this.json[i]['sphere']['position'][1], this.json[i]['sphere']['position'][2]);
+            sphere.name = this.json[i]['name'];
+            this.scene.add(sphere);
+
+            sgeo = new THREE.TorusGeometry(this.json[i]['tor']['size'][0], this.json[i]['tor']['size'][1], this.json[i]['tor']['size'][2], this.json[i]['tor']['size'][3]);
+            sphere = new THREE.Mesh(sgeo, material);
+            sphere.position.set(this.json[i]['tor']['position'][0], this.json[i]['tor']['position'][1], this.json[i]['tor']['position'][2]);
+            sphere.rotation.set(this.json[i]['tor']['rotation'][0], this.json[i]['tor']['rotation'][1], this.json[i]['tor']['rotation'][2]);
+            this.scene.add(sphere);
+
+            sgeo = new THREE.BoxGeometry(this.json[i]['line']['size'][0], this.json[i]['line']['size'][1], this.json[i]['line']['size'][2]);
+            sphere = new THREE.Mesh(sgeo, material);
+            sphere.position.set(this.json[i]['line']['position'][0], this.json[i]['line']['position'][1], this.json[i]['line']['position'][2]);
+
+            this.scene.add(sphere);
+        }
     }
-}
 
+    init() {
+        var container = document.getElementById('container');
+        this.camera.target = new THREE.Vector3(0, 0, 0);
 
-function add_mark(scene) {
+        var geometry = new THREE.SphereBufferGeometry(500, 60, 40);
+        geometry.scale(-1, 1, 1);
+        var texture = new THREE.TextureLoader().load('/3d/m.jpg');
+        var material = new THREE.MeshBasicMaterial({map: texture});
+        var mesh;
+        mesh = new THREE.Mesh(geometry, material);
+
+        mesh.rotation.y = 40;
+        this.scene.add(mesh);
+        this.add_mark();
+
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(this.renderer.domElement);
+
+        this.animate();
+
+    }
     
-    let material = new THREE.MeshBasicMaterial({color: 0xffffff});
-    for(let i = 0; i < Object.keys(json).length; i++){
-        let sgeo = new THREE.SphereGeometry(json[i]['sphere']['size'][0], json[i]['sphere']['size'][1], json[i]['sphere']['size'][2]);
-        let sphere = new THREE.Mesh(sgeo, material);
-        sphere.position.set(json[i]['sphere']['position'][0], json[i]['sphere']['position'][1], json[i]['sphere']['position'][2]);
-        sphere.name = json[i]['name'];
-        scene.add(sphere);
-        
-        sgeo = new THREE.TorusGeometry(json[i]['tor']['size'][0], json[i]['tor']['size'][1], json[i]['tor']['size'][2], json[i]['tor']['size'][3]);
-        sphere = new THREE.Mesh(sgeo, material);
-        sphere.position.set(json[i]['tor']['position'][0], json[i]['tor']['position'][1], json[i]['tor']['position'][2]);
-        sphere.rotation.set(json[i]['tor']['rotation'][0], json[i]['tor']['rotation'][1], json[i]['tor']['rotation'][2]);
-        scene.add(sphere);
-        
-        sgeo = new THREE.BoxGeometry(json[i]['line']['size'][0], json[i]['line']['size'][1], json[i]['line']['size'][2]);
-        sphere = new THREE.Mesh(sgeo, material);
-        sphere.position.set(json[i]['line']['position'][0], json[i]['line']['position'][1], json[i]['line']['position'][2]);
-        
-        scene.add(sphere);
+    mobiles(){
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)) {
+            alert('Некоторые функции могут быть недоступны с использованием телефона');
+        }
     }
-}
 
-function init() {
-    var container, mesh;
-
-    container = document.getElementById('container');
-
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
-    camera.target = new THREE.Vector3(0, 0, 0);
-
-    scene = new THREE.Scene();
-
-    var geometry = new THREE.SphereBufferGeometry(500, 60, 40);
-    geometry.scale(-1, 1, 1);
-
-    var texture = new THREE.TextureLoader().load('/3d/m.jpg');
-    var material = new THREE.MeshBasicMaterial({map: texture});
-
-    mesh = new THREE.Mesh(geometry, material);
-    mesh.rotation.y = 40;
-    scene.add(mesh);
-    add_mark(scene);
-    renderer = new THREE.WebGLRenderer();
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    container.appendChild(renderer.domElement);
-    document.addEventListener('mousedown', onPointerStart, false);
-    document.addEventListener('mousemove', onPointerMove, false);
-    document.addEventListener('mouseup', onPointerUp, false);
-    document.addEventListener('wheel', onDocumentMouseWheel, false);
-    document.addEventListener('touchstart', onPointerStart, false);
-    document.addEventListener('touchmove', onPointerMove, false);
-    document.addEventListener('touchend', onPointerUp, false);
-
-    document.addEventListener('dragover', function (event) {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'copy';
-    }, false);
-
-    document.addEventListener('dragenter', function () {
-        document.body.style.opacity = 0.5;
-    }, false);
-
-    document.addEventListener('dragleave', function () {
-        document.body.style.opacity = 1;
-    }, false);
-
-    document.addEventListener('drop', function (event) {
-        event.preventDefault();
-        var reader = new FileReader();
-        reader.addEventListener('load', function (event) {
-            material.map.image.src = event.target.result;
-            material.map.needsUpdate = true;
+    lisseners() {
+        var self = this;
+        document.getElementById("container").addEventListener('mousemove', function (event) {
+            self.mouse.x = (event.clientX / self.renderer.domElement.clientWidth) * 2 - 1;
+            self.mouse.y = -(event.clientY / self.renderer.domElement.clientHeight) * 2 + 1;
+            self.inter();
         }, false);
-        reader.readAsDataURL(event.dataTransfer.files[ 0 ]);
-        document.body.style.opacity = 1;
 
-    }, false);
-    window.addEventListener('resize', onWindowResize, false);
-}
+        document.addEventListener('mousedown', function (event) {
+            self.inter_click();
+            self.onPointerStart(event, self);
+        }, false);
+        document.addEventListener('mousemove', function (event) {
+            self.onPointerMove(event, self);
+        }, false);
+        document.addEventListener('mouseup', function () {
+            self.onPointerUp(self);
+        }, false);
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
+        document.addEventListener('wheel', function (event) {
+            self.onDocumentMouseWheel(event, self);
+        }, false);
 
-function onPointerStart(event) {
-    isUserInteracting = true;
-    var clientX = event.clientX || event.touches[ 0 ].clientX;
-    var clientY = event.clientY || event.touches[ 0 ].clientY;
-    onMouseDownMouseX = clientX;
-    onMouseDownMouseY = clientY;
-    onMouseDownLon = lon;
-    onMouseDownLat = lat;
-}
+        document.addEventListener('touchstart', function (event) {
+            self.onPointerStart(event, self);
+        }, false);
+        document.addEventListener('touchmove', function (event) {
+            self.onPointerMove(event, self);
+        }, false);
+        document.addEventListener('touchend', function () {
+            self.onPointerUp(self);
+        }, false);
 
-function onPointerMove(event) {
-    if (isUserInteracting === true) {
+        window.addEventListener('resize', self.onWindowResize, false);
+
+        document.addEventListener('keyup', function (event) {
+            if (event.key === "Escape") { 
+                $('#modal').css('display', 'none');
+            }
+        }, false);
+    }
+
+    onMouseMove(event) {
+        this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    onWindowResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    onPointerStart(event, m360) {
+        mScene.isUserInteracting = true;
+
         var clientX = event.clientX || event.touches[ 0 ].clientX;
         var clientY = event.clientY || event.touches[ 0 ].clientY;
-        lon = (onMouseDownMouseX - clientX) * 0.1 + onMouseDownLon;
-        lat = (clientY - onMouseDownMouseY) * 0.1 + onMouseDownLat;
+
+        m360.onMouseDownMouseX = clientX;
+        m360.onMouseDownMouseY = clientY;
+
+        m360.onMouseDownLon = m360.lon;
+        m360.onMouseDownLat = m360.lat;
     }
-}
 
-function onPointerUp() {
-    isUserInteracting = false;
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    update();
-}
-
-function update() {
-    lat = Math.max(-85, Math.min(85, lat));
-    phi = THREE.MathUtils.degToRad(90 - lat);
-    theta = THREE.MathUtils.degToRad(lon);
-    camera.target.x = 500 * Math.sin(phi) * Math.cos(theta);
-    camera.target.y = 500 * Math.cos(phi);
-    camera.target.z = 500 * Math.sin(phi) * Math.sin(theta);
-    camera.lookAt(camera.target);
-    renderer.render(scene, camera);
-}
-
-
-function floor_viz(f) {
-    if (f === 'c1f') {
-        floor = 1;
-    } else {
-        floor = 2;
+    onPointerMove(event, m360) {
+        if (m360.isUserInteracting === true) {
+            var clientX = event.clientX || event.touches[ 0 ].clientX;
+            var clientY = event.clientY || event.touches[ 0 ].clientY;
+            m360.lon = (m360.onMouseDownMouseX - clientX) * 0.1 + m360.onMouseDownLon;
+            m360.lat = (clientY - m360.onMouseDownMouseY) * 0.1 + m360.onMouseDownLat;
+        }
     }
-    f_css();
-}
 
-function f_css() {
-    if (floor === 1) {
-        $('#c1f').css({
-            'opacity': 1,
-            'z-index': 2000
+    onPointerUp(m360) {
+        m360.isUserInteracting = false;
+    }
+
+    onDocumentMouseWheel(event, m360) {
+        if (m360.zoom) {
+            var fov = m360.camera.fov + event.deltaY * 0.05;
+            m360.camera.fov = THREE.MathUtils.clamp(fov, 10, 75);
+            m360.camera.updateProjectionMatrix();
+        }
+    }
+
+    animate() {
+        let requestId = requestAnimationFrame(() => {
+            this.animate();
         });
-        $('#c2f').css({
-            'opacity': 0.15,
-            'z-index': 0
-        });
-    } else {
-        $('#c2f').css({
-            'opacity': 1,
-            'z-index': 2000
-        });
-        $('#c1f').css({
-            'opacity': 0.15,
-            'z-index': 0
-        });
+        this.update();
     }
-    marker_css();
-}
 
-function marker_css() {
-    let fl = $('#marker').attr('floors');
-    if (fl === 'c1f' && floor === 1 || fl === 'c2f' && floor === 2) {
-        $('#marker').css('opacity', 1);
-    } else {
-        $('#marker').css('opacity', 0.15);
+    update() {
+        this.lat = Math.max(-85, Math.min(85, this.lat));
+        this.phi = THREE.MathUtils.degToRad(90 - this.lat);
+        this.theta = THREE.MathUtils.degToRad(this.lon);
+
+        this.camera.target.x = 500 * Math.sin(this.phi) * Math.cos(this.theta);
+        this.camera.target.y = 500 * Math.cos(this.phi);
+        this.camera.target.z = 500 * Math.sin(this.phi) * Math.sin(this.theta);
+
+        this.camera.lookAt(this.camera.target);
+        this.renderer.render(this.scene, this.camera);
     }
+
 }
 
-function starway() {
-    floor = (floor === 2) ? 1 : 2;
-    f_css();
-}
+var mScene = new Marks360(json);
 
-$("#container").mousemove(function (event) {
-       mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
-    mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
-inter();
-});
 
-$("#container").mousedown(function (e) {
-    inter_click();
-    return true;
-});
-
-$(document).keyup(function (e) {
-    if (e.key === "Escape") { // escape key maps to keycode `27`
-        $('#modal').css('display', 'none');
-    }
-});
-
-if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)) {
-    HTMLControlls.mobileIcon();
-    $('#mobs').html('<h1>Некоторые функции могут быть недоступны с использованием телефона.</h1>');
-            //$('#container').remove();
-     mScene = null;
-}
