@@ -3,7 +3,7 @@
 
 Используется на https://muzeon.ipk-tula.ru/360/main
 
-```javascript
+```html
 <div id="container"></div>
 <div id="modal">
     <div id="closer" onclick="close_modal()">
@@ -14,5 +14,10 @@
         <p id="mp"></p>
     </div>
 </div>
-</pre>
+
+<script>
+    function close_modal(){
+    $('#modal').css('display', 'none');
+}
+</script>
 ```
