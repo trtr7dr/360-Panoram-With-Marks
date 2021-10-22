@@ -1,23 +1,14 @@
 "use strict";
 import * as THREE from './three/build/three.module.js';
 
-var mflag = false;
-document.getElementById("container").addEventListener("mouseover", mouseOver);
-document.getElementById("container").addEventListener("mouseout", mouseOut);
-function mouseOver() {
-    mflag = true;
-}
-
-function mouseOut() {
-    mflag = false;
-}
-
 class Marks360 {
-    constructor(json) {
+    constructor(id, json, img) {
+        this.container = id;
         this.scene = new THREE.Scene();
         this.renderer = new THREE.WebGLRenderer();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
         this.json = json;
+        this.img = img;
 
         this.isUserInteracting = false,
                 this.onMouseDownMouseX = 0, this.onMouseDownMouseY = 0,
@@ -100,23 +91,24 @@ class Marks360 {
     }
 
     init() {
-        var container = document.getElementById('container');
         this.camera.target = new THREE.Vector3(0, 0, 0);
 
         var geometry = new THREE.SphereBufferGeometry(500, 60, 40);
         geometry.scale(-1, 1, 1);
-        var texture = new THREE.TextureLoader().load('/3d/m.jpg');
+        var texture = new THREE.TextureLoader().load(this.img);
         var material = new THREE.MeshBasicMaterial({map: texture});
         var mesh;
         mesh = new THREE.Mesh(geometry, material);
 
         mesh.rotation.y = 40;
+
         this.scene.add(mesh);
+
         this.add_mark();
 
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        container.appendChild(this.renderer.domElement);
+        document.getElementById(this.container).appendChild(this.renderer.domElement);
 
         this.animate();
 
@@ -130,7 +122,7 @@ class Marks360 {
 
     lisseners() {
         var self = this;
-        document.getElementById("container").addEventListener('mousemove', function (event) {
+        document.getElementById(this.container).addEventListener('mousemove', function (event) {
             self.mouse.x = (event.clientX / self.renderer.domElement.clientWidth) * 2 - 1;
             self.mouse.y = -(event.clientY / self.renderer.domElement.clientHeight) * 2 + 1;
             self.inter();
@@ -237,6 +229,4 @@ class Marks360 {
 
 }
 
-var mScene = new Marks360(json);
-
-
+var mScene = new Marks360('container', json, '/3d/m.jpg');
