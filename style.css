@@ -1,0 +1,50 @@
+    body{
+        opacity: 1 !important;
+    }
+    #container canvas{
+        display: -webkit-box;
+        object-fit: cover;
+        width: 100% !important;
+        height: calc(100vh - 90px) !important;
+    }
+    div#modal {
+        display: none;
+        opacity: 0;
+        position: absolute;
+        top: 140px;
+        right: 15%;
+        width: 70%;
+        max-height: 70vh;
+        border-radius: 3px;
+        -webkit-transition: all .4s ease-out;
+        -moz-transition: all .4s ease-out;
+        -o-transition: all .4s ease-out;
+        transition: all .4s ease-out;
+    }
+    img#wimg {
+        width: 100%;
+        filter: drop-shadow(0px 4px 6px black);
+    }
+    #closer {
+        position: absolute;
+        right: -30px;
+        margin-top: -27px;
+        font-size: 30px;
+        color: white;
+        padding: 4px;
+        cursor: pointer;
+        z-index: 4000;
+        border: 2px solid white;
+        border-radius: 100%;
+        width: 58px;
+        text-align: center;
+        height: 58px;
+    }
+    div#modal p {
+        text-align: center;
+        display: none;
+        font-size: 20px;
+    }
+    #modal::selection, #wimg::selection, #modal p::selection, #closer::selection{
+        background: none !important;
+    }
