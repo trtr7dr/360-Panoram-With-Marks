@@ -9,7 +9,6 @@ class Marks360 {
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
         this.json = json;
         this.img = img;
-
         this.isUserInteracting = false,
                 this.onMouseDownMouseX = 0, this.onMouseDownMouseY = 0,
                 this.lon = 0, this.onMouseDownLon = 0,
@@ -75,7 +74,7 @@ class Marks360 {
             sphere.position.set(this.json[i]['sphere']['position'][0], this.json[i]['sphere']['position'][1], this.json[i]['sphere']['position'][2]);
             sphere.name = this.json[i]['name'];
             this.scene.add(sphere);
-
+            
             sgeo = new THREE.TorusGeometry(this.json[i]['tor']['size'][0], this.json[i]['tor']['size'][1], this.json[i]['tor']['size'][2], this.json[i]['tor']['size'][3]);
             sphere = new THREE.Mesh(sgeo, material);
             sphere.position.set(this.json[i]['tor']['position'][0], this.json[i]['tor']['position'][1], this.json[i]['tor']['position'][2]);
@@ -92,24 +91,18 @@ class Marks360 {
 
     init() {
         this.camera.target = new THREE.Vector3(0, 0, 0);
-
         var geometry = new THREE.SphereBufferGeometry(500, 60, 40);
         geometry.scale(-1, 1, 1);
         var texture = new THREE.TextureLoader().load(this.img);
         var material = new THREE.MeshBasicMaterial({map: texture});
         var mesh;
         mesh = new THREE.Mesh(geometry, material);
-
         mesh.rotation.y = 40;
-
         this.scene.add(mesh);
-
         this.add_mark();
-
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById(this.container).appendChild(this.renderer.domElement);
-
         this.animate();
 
     }
@@ -127,7 +120,6 @@ class Marks360 {
             self.mouse.y = -(event.clientY / self.renderer.domElement.clientHeight) * 2 + 1;
             self.inter();
         }, false);
-
         document.addEventListener('mousedown', function (event) {
             self.inter_click();
             self.onPointerStart(event, self);
@@ -138,11 +130,9 @@ class Marks360 {
         document.addEventListener('mouseup', function () {
             self.onPointerUp(self);
         }, false);
-
         document.addEventListener('wheel', function (event) {
             self.onDocumentMouseWheel(event, self);
         }, false);
-
         document.addEventListener('touchstart', function (event) {
             self.onPointerStart(event, self);
         }, false);
@@ -152,9 +142,7 @@ class Marks360 {
         document.addEventListener('touchend', function () {
             self.onPointerUp(self);
         }, false);
-
         window.addEventListener('resize', self.onWindowResize, false);
-
         document.addEventListener('keyup', function (event) {
             if (event.key === "Escape") { 
                 $('#modal').css('display', 'none');
@@ -175,13 +163,10 @@ class Marks360 {
 
     onPointerStart(event, m360) {
         mScene.isUserInteracting = true;
-
         var clientX = event.clientX || event.touches[ 0 ].clientX;
         var clientY = event.clientY || event.touches[ 0 ].clientY;
-
         m360.onMouseDownMouseX = clientX;
         m360.onMouseDownMouseY = clientY;
-
         m360.onMouseDownLon = m360.lon;
         m360.onMouseDownLat = m360.lat;
     }
@@ -218,15 +203,12 @@ class Marks360 {
         this.lat = Math.max(-85, Math.min(85, this.lat));
         this.phi = THREE.MathUtils.degToRad(90 - this.lat);
         this.theta = THREE.MathUtils.degToRad(this.lon);
-
         this.camera.target.x = 500 * Math.sin(this.phi) * Math.cos(this.theta);
         this.camera.target.y = 500 * Math.cos(this.phi);
         this.camera.target.z = 500 * Math.sin(this.phi) * Math.sin(this.theta);
-
         this.camera.lookAt(this.camera.target);
         this.renderer.render(this.scene, this.camera);
     }
-
 }
 
 var mScene = new Marks360('container', json, '/3d/m.jpg');
